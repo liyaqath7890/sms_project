@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { School, User, Mail, Lock, UserPlus } from 'lucide-react';
+import { User, Mail, Lock, UserPlus } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CustomInput from '../../components/custom/CustomInput';
@@ -14,27 +14,59 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const buildRegisterPayload = () => {
+    const [firstName, ...restName] = formData.name.trim().split(/\s+/);
+
+    return {
+      firstName: firstName || 'Admin',
+      lastName: restName.join(' ') || 'User',
+      email: formData.email.trim(),
+      password: formData.password,
+      role: 'admin'
+    };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
-      await register(formData);
-      // After registration, usually redirect to dashboard (which AuthProvider does automatically on state update)
-      // or redirect to login. In our context, register sets the user state.
+      await register(buildRegisterPayload());
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else if (err.request) {
+        setError('Cannot reach backend API. Make sure the backend server is running on http://localhost:3001.');
+      } else {
+        setError('Account creation failed. Please try again.');
+      }
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -68,6 +100,21 @@ const Register = () => {
           <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>Join EduStream to start managing your school</p>
         </div>
 
+        {error && (
+          <div style={{
+            padding: '0.75rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: 'var(--radius-md)',
+            color: '#fca5a5',
+            fontSize: '0.875rem',
+            marginBottom: '1.25rem',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ color: 'white' }}>
             <CustomInput
@@ -95,16 +142,19 @@ const Register = () => {
                 name="password"
                 type="password"
                 icon={Lock}
-                placeholder="••••••••"
+                placeholder="Minimum 8 characters"
                 value={formData.password}
                 onChange={handleChange}
                 required
               />
               <CustomInput
                 label="Confirm"
+                name="confirmPassword"
                 type="password"
                 icon={Lock}
-                placeholder="••••••••"
+                placeholder="Repeat password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 required
               />
             </div>
@@ -117,10 +167,10 @@ const Register = () => {
             </label>
           </div>
 
-          <CustomButton 
-            type="submit" 
-            variant="primary" 
-            fullWidth 
+          <CustomButton
+            type="submit"
+            variant="primary"
+            fullWidth
             size="lg"
             icon={UserPlus}
             isLoading={isLoading}
@@ -129,7 +179,7 @@ const Register = () => {
           </CustomButton>
 
           <p style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem', marginTop: '1rem' }}>
-            Already have an account? {' '}
+            Already have an account?{' '}
             <Link to="/auth/login" style={{ color: 'var(--primary-light)', fontWeight: 600 }}>
               Sign In
             </Link>

@@ -9,23 +9,61 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+].filter(Boolean);
+
 app.use(cors({
-  origin: /^http:\/\/localhost:\d+$/,
+  origin(origin, callback) {
+    if (
+      !origin ||
+      /^http:\/\/localhost:\d+$/.test(origin) ||
+      allowedOrigins.includes(origin) ||
+      /^https:\/\/.*\.vercel\.app$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/health', (req, res) => {
+const healthHandler = (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+};
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
+
+app.get('/api/db-status', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    res.json({ success: true, message: 'Database connected', time: result.rows[0].now });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: 'Database connection failed',
+      code: err.code,
+      detail: err.message
+    });
+  }
 });
 
 app.get('/api/test-db', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
-    res.json({ message: 'Database connected', time: result.rows[0].now });
+    res.json({ success: true, message: 'Database connected', time: result.rows[0].now });
   } catch (err) {
-    res.status(500).json({ error: 'Database connection failed' });
+    res.status(500).json({
+      success: false,
+      error: 'Database connection failed',
+      code: err.code,
+      detail: err.message
+    });
   }
 });
 
@@ -60,10 +98,14 @@ app.use('/api/subjects', subjectRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-process.on('SIGTERM', () => pool.end(() => process.exit(0)));
-process.on('SIGINT', () => pool.end(() => process.exit(0)));
+if (!process.env.VERCEL) {
+  process.on('SIGTERM', () => pool.end(() => process.exit(0)));
+  process.on('SIGINT', () => pool.end(() => process.exit(0)));
 
-app.listen(PORT, () => {
-  console.log(`🚀 Edustrem Server running on port ${PORT}`);
-  console.log(`📚 Health: http://localhost:${PORT}/health`);
-});
+  app.listen(PORT, () => {
+    console.log(`Edustrem Server running on port ${PORT}`);
+    console.log(`Health: http://localhost:${PORT}/health`);
+  });
+}
+
+export default app;

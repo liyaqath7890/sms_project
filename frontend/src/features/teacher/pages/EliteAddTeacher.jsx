@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 import { ElitePageHeader } from '../../../components/elite';
-import { apiService } from '../../../services/apiService';
+import { dataManager } from '../../../services/dataManager';
 
 const EliteAddTeacher = () => {
   const navigate = useNavigate();
@@ -51,15 +51,16 @@ const EliteAddTeacher = () => {
 
     try { 
       setLoading(true); 
-      await apiService.teachers.create({ 
+      await dataManager.createTeacher({
         ...form, 
         name: `${form.firstName} ${form.lastName}`,
-        teacherId: `TCH${Date.now().toString().slice(-4)}`
+        employeeId: `TCH${Date.now().toString().slice(-6)}`,
+        qualification: form.subject
       }); 
       setSuccess(true);
       setTimeout(() => navigate('/teachers'), 1500);
     } catch (err) { 
-      setError(err.message || 'Failed to register teacher.'); 
+      setError(err.response?.data?.error || err.message || 'Failed to register teacher.'); 
     } finally { 
       setLoading(false); 
     } 

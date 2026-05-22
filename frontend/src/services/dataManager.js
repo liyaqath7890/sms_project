@@ -523,6 +523,32 @@ class DataManager {
     }
   }
 
+  async createTeacher(teacherData) {
+    const result = await apiService.teachers.create(teacherData);
+    this.invalidateTeacherCaches();
+    return result;
+  }
+
+  async updateTeacher(id, teacherData) {
+    const result = await apiService.teachers.update(id, teacherData);
+    this.invalidateTeacherCaches();
+    return result;
+  }
+
+  async deleteTeacher(id) {
+    const result = await apiService.teachers.delete(id);
+    this.invalidateTeacherCaches();
+    return result;
+  }
+
+  invalidateTeacherCaches() {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith('teachers_') || key.startsWith('teacher_')) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
   // Courses data management
   async getCourses(params = {}) {
     const cacheKey = `courses_${JSON.stringify(params)}`;

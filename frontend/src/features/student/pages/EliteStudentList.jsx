@@ -18,10 +18,13 @@ import { ElitePageHeader, EliteTable, EliteStatCard } from '../../../components/
 import AIAnalyticsCard from '../../../components/custom/AIAnalyticsCard';
 import { useAcademicSession } from '../../../services/academicSessionContext';
 import { dataManager } from '../../../services/dataManager';
+import { useAuth } from '../../../authentication/context/AuthContext';
 
 const EliteStudentList = () => {
   const navigate = useNavigate();
   const { currentStandard, currentDivision } = useAcademicSession();
+  const { hasPermission } = useAuth();
+  const canWriteStudents = hasPermission('students:write');
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -77,8 +80,8 @@ const EliteStudentList = () => {
       key: 'gender',
       label: 'Gender',
       render: (value) => (
-        <span className={`badge ${value === 'Male' ? 'badge-info' : 'badge-danger'}`} style={{ opacity: 0.8 }}>
-          {value}
+        <span style={{ color: 'var(--text-muted)', fontWeight: 600, textTransform: 'capitalize' }}>
+          {value || 'N/A'}
         </span>
       )
     },
@@ -115,16 +118,41 @@ const EliteStudentList = () => {
       )
     },
     {
-      key: 'status',
-      label: 'Status',
-      render: () => (
-        <span className="badge badge-success">Active</span>
+      key: 'actions',
+      label: 'Action',
+      render: (_, row) => (
+        <div style={{ display: 'flex', justifyContent: 'center', minWidth: '88px' }}>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              navigate(`/students/profile/${row.id}`);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '72px',
+              height: '32px',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--primary-light)',
+              color: 'var(--primary)',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            View
+          </button>
+        </div>
       )
     }
   ];
 
   const headerActions = [
-    { label: 'Add Student', icon: UserPlus, variant: 'primary', onClick: () => navigate('/students/add') },
+    ...(canWriteStudents ? [{ label: 'Add Student', icon: UserPlus, variant: 'primary', onClick: () => navigate('/students/add') }] : []),
     { label: 'Export Data', icon: Download, variant: 'secondary', onClick: () => console.log('Export') }
   ];
 
@@ -149,7 +177,7 @@ const EliteStudentList = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '2rem' }}>
-        <div style={{ gridColumn: 'span 8' }}>
+        <div style={{ gridColumn: '1 / -1' }}>
           <EliteTable 
             title="Active Students" 
             columns={columns} 
@@ -158,13 +186,14 @@ const EliteStudentList = () => {
             onRowClick={(row) => navigate(`/students/profile/${row.id}`)}
           />
         </div>
-        <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ gridColumn: 'span 6', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <AIAnalyticsCard 
             type="class" 
             data={{ students }} 
             title="Class Performance Insight" 
           />
-          
+        </div>
+        <div style={{ gridColumn: 'span 6' }}>
           <div className="card-premium" style={{ backgroundImage: 'var(--grad-dark)', color: 'white', border: 'none' }}>
             <h4 style={{ margin: 0, color: 'white' }}>Quick Filter</h4>
             <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.7)', marginTop: '0.5rem' }}>Filter directory by performance tiers or attendance risk levels.</p>

@@ -17,9 +17,12 @@ import {
 import { ElitePageHeader, EliteTable, EliteStatCard } from '../../../components/elite';
 import AIAnalyticsCard from '../../../components/custom/AIAnalyticsCard';
 import { dataManager } from '../../../services/dataManager';
+import { useAuth } from '../../../authentication/context/AuthContext';
 
 const EliteTeacherList = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canWriteTeachers = hasPermission('teachers:write');
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,7 +30,7 @@ const EliteTeacherList = () => {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
-      const data = await dataManager.getTeachers();
+      const data = await dataManager.getTeachers({ force: true });
       setTeachers(data.teachers || []);
     } catch (err) {
       setError('Failed to load teachers');
@@ -71,10 +74,10 @@ const EliteTeacherList = () => {
     {
       key: 'subject',
       label: 'Specialization',
-      render: (value) => (
+      render: (value, row) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <BookOpen size={14} className="text-info" />
-          <span style={{ fontWeight: 600 }}>{value || 'Mathematics'}</span>
+          <span style={{ fontWeight: 600 }}>{value || row.qualification || 'Not assigned'}</span>
         </div>
       )
     },
@@ -113,7 +116,7 @@ const EliteTeacherList = () => {
   ];
 
   const headerActions = [
-    { label: 'Add Teacher', icon: UserPlus, variant: 'primary', onClick: () => navigate('/teachers/add') },
+    ...(canWriteTeachers ? [{ label: 'Add Teacher', icon: UserPlus, variant: 'primary', onClick: () => navigate('/teachers/add') }] : []),
     { label: 'Export Directory', icon: Download, variant: 'secondary', onClick: () => console.log('Export') }
   ];
 
