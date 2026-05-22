@@ -7,15 +7,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
+    "dev": "vite --config vite.config.js",
+    "build": "tsc -p frontend/tsconfig.json && vite build --config vite.config.js",
+    "lint": "eslint -c frontend/eslint.config.js frontend",
+    "preview": "vite preview --config vite.config.js",
     "mock-server": "node mock-server.js",
     "server": "node backend/server.js",
     "server:dev": "nodemon backend/server.js",
-    "type-check": "tsc --noEmit",
-    "start": "concurrently \"npm run server:dev\" \"npm run dev\""
+    "local:setup": "node backend/scripts/local-setup.js",
+    "local:migrate": "node backend/scripts/run-migrations.js",
+    "type-check": "tsc -p frontend/tsconfig.json --noEmit",
+    "start": "concurrently \"npm run mock-server\" \"npm run dev\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
